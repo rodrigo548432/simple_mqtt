@@ -11,6 +11,7 @@
 
 #define CLIENTID "BIRINGA"
 
+
 int main(int argc, char *argv[])
 {
 	int ret = 0, hn_len = 0, sockfd, buffer_len;
@@ -20,13 +21,23 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	const char *hostname = argv[1];
-	const char *topic = argv[3];
 	int port = atoi(argv[2]);
+	char **topic = NULL;
+	int topics_len = argc - 3;
+	topic = (char**)malloc(topics_len * sizeof(char*));
+	for (int i = 0; i < topics_len; i++) {
+		int topic_str_len = strlen(argv[i+3]);
+		topic[i] = (char*)malloc(topic_str_len * sizeof(char));
+		strncpy(topic[i], argv[i+3], topic_str_len * sizeof(char));
+	}
 
-	printf("Received params:\n");
-	printf("Hostname: %s\n", hostname);
-	printf("Port: %d\n", port);
-	printf("Topic: %s\n", topic);
+	printf("Start MQTT packet sender:\n");
+	printf(" Hostname: %s\n", hostname);
+	printf(" Port: %d\n", port);
+	printf(" Topics: ");
+	for (int i = 0; i < topics_len; i++)
+		printf("%s ", topic[i]);
+	printf("\n");
 
 	printf("Starting Simple MQTT\n");
 	sockfd = mqtt_connect_simple(hostname, port, CLIENTID);
@@ -35,33 +46,39 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	subscribe_parameters subs_params[1];
-	int topic_len = strlen(topic);
-	subs_params[0].qos = 2;
-	subs_params[0].topic = (char*)malloc(topic_len * sizeof(char));
-	strncpy(subs_params[0].topic, topic, topic_len * sizeof(char));
+	subscribe_parameters *subs_params;
+	subs_params = (subscribe_parameters*)malloc(topics_len * sizeof(subscribe_parameters));
+	for (int i = 0; i < topics_len; i++) {
+		subs_params[i].topic_len = strlen(topic[i]);
+		subs_params[i].qos = 2;
+		subs_params[i].topic = (char*)malloc(subs_params[i].topic_len * sizeof(char));
+		strncpy(subs_params[i].topic, topic[i], subs_params[i].topic_len * sizeof(char));
+	}
 	printf("Subscribe to topic\n");
-	if (mqtt_subscribe(sockfd, 1, subs_params) < 0) {
+	if (mqtt_subscribe(sockfd, topics_len, subs_params) < 0) {
 		printf("MQTT subscribe to topic failure!\n");
-		return -1;
+		goto finish;
 	}
 
 	while (1) {
 		if (mqtt_publish(sockfd, subs_params[0].topic, "Teste 123") < 0) {
 			printf("MQTT publish failure!\n");
-			return -1;
+			goto finish;
 		}
 		sleep(5);
 
 		break;
 	}
 
-	mqtt_unsubscribe(sockfd, 1, subs_params);
+	mqtt_unsubscribe(sockfd, topics_len, subs_params);
 	mqtt_disconnect(sockfd);
 
-	free(subs_params[0].topic);
-	subs_params[0].topic = NULL;
-	// free(subs_params);
-	// subs_params = NULL;
+finish:
+	for (int i = 0; i < topics_len; i++) {
+		free(subs_params[i].topic);
+		subs_params[i].topic = NULL;
+	}
+	free(subs_params);
+	subs_params = NULL;
 	return 0;
 }

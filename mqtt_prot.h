@@ -70,6 +70,7 @@ typedef enum {
 
 typedef struct {
     mqtt_subscribe_qos qos;
+    int topic_len;
     char *topic;
 } mqtt_subs_params;
 

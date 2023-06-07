@@ -116,11 +116,11 @@ int mqtt_prot_subscribe(mqtt_subs_params *params,
 
 	/* PAYLOAD */
 	for (int j = 0; j < nbParams; j++) {
-		topic_len = (uint16_t)strlen(params[j].topic);
-		subs_pkt[++i] = (uint8_t)(topic_len >> 8);
-		subs_pkt[++i] = (uint8_t)topic_len;
-		for (int k = 0; k < topic_len; k++)
+		subs_pkt[++i] = (uint8_t)(params[j].topic_len >> 8);
+		subs_pkt[++i] = (uint8_t)params[j].topic_len;
+		for (int k = 0; k < params[j].topic_len; k++) {
 			subs_pkt[++i] = params[j].topic[k];
+		}
 		subs_pkt[++i] = params->qos;
 	}
 
@@ -170,16 +170,11 @@ int mqtt_prot_unsubscribe(mqtt_subs_params *params,
 	unsub_pkt[++i] = 0x02;
 
 	for (int j = 0; j < nbParams; j++) {
-		topic_len = (uint16_t)strlen(params[j].topic);
-		unsub_pkt[++i] = (uint8_t)(topic_len >> 8);
-		unsub_pkt[++i] = (uint8_t)topic_len;
-		for (int k = 0; k < topic_len; k++)
+		unsub_pkt[++i] = (uint8_t)(params[j].topic_len >> 8);
+		unsub_pkt[++i] = (uint8_t)params[j].topic_len;
+		for (int k = 0; k < params[j].topic_len; k++)
 			unsub_pkt[++i] = params[j].topic[k];
 	}
-	// unsub_pkt[++i] = (uint8_t)(topic_len >> 8);
-	// unsub_pkt[++i] = (uint8_t)topic_len;
-	// for (int j = 0; j < topic_len; j++)
-	// 	unsub_pkt[++i] = topic[j];
 
 	unsub_pkt[1] = (++i - 2);
 

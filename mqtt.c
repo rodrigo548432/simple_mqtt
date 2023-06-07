@@ -7,15 +7,6 @@
 #include "mqtt_prot.h"
 #include "network.h"
 #include "unistd.h"
-#include "pthread.h"
-
-typedef struct
-{
-	void *cb;
-	int sock_handler;
-} async_mqtt_params;
-
-static pthread_t async_recmsg;
 
 #if 0
 static const char *connack2str(mqtt_connack_err_codes err)
@@ -138,7 +129,7 @@ int mqtt_subscribe(int mqtt_socket,
 	}
 
 	memset(&buffer[0], 0, BUFFER_SIZE * sizeof(uint8_t));
-	buf_len = mqtt_prot_subscribe(subs_params, 1, buffer);
+	buf_len = mqtt_prot_subscribe(subs_params, subs_params_len, buffer);
 	if (socket_send(mqtt_socket, buffer, buf_len) < 0) {
 		print_err("Couldn't send subscribe packet");
 		goto fail;
@@ -158,12 +149,6 @@ int mqtt_subscribe(int mqtt_socket,
 
 	return 0;
 fail:
-	for (int i = 0; i < subs_params_len; i++) {
-		free(subs_params[i].topic);
-		subs_params[i].topic = NULL;
-	}
-	free(subs_params);
-	subs_params = NULL;
 	return -1;
 }
 
@@ -234,7 +219,7 @@ int mqtt_unsubscribe(int mqtt_socket,
 	}
 
 	memset(&buffer[0], 0, BUFFER_SIZE * sizeof(uint8_t));
-	buf_len = mqtt_prot_unsubscribe(subs_params, 1, buffer);
+	buf_len = mqtt_prot_unsubscribe(subs_params, subs_params_len, buffer);
 	if (socket_send(mqtt_socket, buffer, buf_len) < 0) {
 		print_err("Couldn't send unsubscribe packet");
 		goto fail;
@@ -254,11 +239,5 @@ int mqtt_unsubscribe(int mqtt_socket,
 
 	return 0;
 fail:
-	for (int i = 0; i < subs_params_len; i++) {
-		free(subs_params[i].topic);
-		subs_params[i].topic = NULL;
-	}
-	free(subs_params);
-	subs_params = NULL;
 	return -1;
 }

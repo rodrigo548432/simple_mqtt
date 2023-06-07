@@ -13,8 +13,10 @@
 #define ENABLE_TRACES
 #include "trace.h"
 
+
 typedef struct {
     int qos;
+    int topic_len;
     char *topic;
 } subscribe_parameters;
 

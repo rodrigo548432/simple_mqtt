@@ -13,7 +13,7 @@
 #include "trace.h"
 
 #define IPV4_MAX_LEN 17
-#define BUFFER_SIZE 64
+#define BUFFER_SIZE 128
 #define RECV_TIMEOUT 10000
 
 /**
