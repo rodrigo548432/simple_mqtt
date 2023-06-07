@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[])
 {
-	int ret = 0, hn_len = 0, sockfd, buffer_len;
+	int sockfd;
 
 	if (argc < 4) {
 		printf("Not enough arguments\n");
@@ -22,24 +22,24 @@ int main(int argc, char *argv[])
 	}
 	const char *hostname = argv[1];
 	int port = atoi(argv[2]);
-	char **topic = NULL;
+	char **topics = NULL;
 	int topics_len = argc - 3;
-	topic = (char**)malloc(topics_len * sizeof(char*));
+	topics = (char**)malloc(topics_len * sizeof(char*));
 	for (int i = 0; i < topics_len; i++) {
 		int topic_str_len = strlen(argv[i+3]);
-		topic[i] = (char*)malloc(topic_str_len * sizeof(char));
-		strncpy(topic[i], argv[i+3], topic_str_len * sizeof(char));
+		topics[i] = (char*)malloc(topic_str_len * sizeof(char));
+		strncpy(topics[i], argv[i+3], topic_str_len * sizeof(char));
 	}
 
-	printf("Start MQTT packet sender:\n");
+	printf("Start Simple MQTT packet sender:\n");
 	printf(" Hostname: %s\n", hostname);
 	printf(" Port: %d\n", port);
 	printf(" Topics: ");
 	for (int i = 0; i < topics_len; i++)
-		printf("%s ", topic[i]);
+		printf("%s ", topics[i]);
 	printf("\n");
 
-	printf("Starting Simple MQTT\n");
+	printf("Creating connection\n");
 	sockfd = mqtt_connect_simple(hostname, port, CLIENTID);
 	if (sockfd < 0) {
 		printf("MQTT connect failure!\n");
@@ -49,12 +49,12 @@ int main(int argc, char *argv[])
 	subscribe_parameters *subs_params;
 	subs_params = (subscribe_parameters*)malloc(topics_len * sizeof(subscribe_parameters));
 	for (int i = 0; i < topics_len; i++) {
-		subs_params[i].topic_len = strlen(topic[i]);
+		subs_params[i].topic_len = strlen(topics[i]);
 		subs_params[i].qos = 2;
 		subs_params[i].topic = (char*)malloc(subs_params[i].topic_len * sizeof(char));
-		strncpy(subs_params[i].topic, topic[i], subs_params[i].topic_len * sizeof(char));
+		strncpy(subs_params[i].topic, topics[i], subs_params[i].topic_len * sizeof(char));
 	}
-	printf("Subscribe to topic\n");
+	printf("Subscribe to topics\n");
 	if (mqtt_subscribe(sockfd, topics_len, subs_params) < 0) {
 		printf("MQTT subscribe to topic failure!\n");
 		goto finish;
@@ -75,8 +75,12 @@ finish:
 	for (int i = 0; i < topics_len; i++) {
 		free(subs_params[i].topic);
 		subs_params[i].topic = NULL;
+		free(topics[i]);
+		topics[i] = NULL;
 	}
 	free(subs_params);
 	subs_params = NULL;
+	free(topics);
+	topics = NULL;
 	return 0;
 }
