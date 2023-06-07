@@ -60,14 +60,12 @@ int main(int argc, char *argv[])
 		goto finish;
 	}
 
-	while (1) {
-		if (mqtt_publish(sockfd, subs_params[0].topic, "Teste 123") < 0) {
+	for (int i = 0; i < topics_len; i++) {
+		if (mqtt_publish(sockfd, subs_params[i].topic, "Teste 123") < 0) {
 			printf("MQTT publish failure!\n");
 			goto finish;
 		}
 		sleep(5);
-
-		break;
 	}
 
 	mqtt_unsubscribe(sockfd, topics_len, subs_params);
