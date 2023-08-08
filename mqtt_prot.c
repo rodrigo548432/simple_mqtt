@@ -7,12 +7,13 @@
 
 int mqtt_prot_connect(uint8_t *to_send,
 						uint8_t conn_flags,
+						uint16_t keepalive,
 						const char *clientID,
 						const char *username,
 						const char *password)
 {
 	uint8_t conn_pkt[MQTT_PROT_PACKET_LEN];
-	uint16_t cID_len;
+	uint16_t dummy;
 	uint8_t i = 0;
 	int bytes_to_send;
 
@@ -32,32 +33,28 @@ int mqtt_prot_connect(uint8_t *to_send,
 	conn_pkt[++i] = 'T';
 	conn_pkt[++i] = 'T';
 	conn_pkt[++i] = 0x04;
-	++i;
-	if (conn_flags & CONNECT_FLAG_CLEAN_SESSION)
-		conn_pkt[i] |= CONNECT_FLAG_CLEAN_SESSION;
-	if (conn_flags & CONNECT_FLAG_WILL)
-		conn_pkt[i] |= CONNECT_FLAG_WILL;
-	if (conn_flags & CONNECT_FLAG_WILL_QOS_1)
-		conn_pkt[i] |= CONNECT_FLAG_WILL_QOS_1;
-	if (conn_flags & CONNECT_FLAG_WILL_QOS_2)
-		conn_pkt[i] |= CONNECT_FLAG_WILL_QOS_2;
-	if (conn_flags & CONNECT_FLAG_WILL_RETAIN)
-		conn_pkt[i] |= CONNECT_FLAG_WILL_RETAIN;
-	if (conn_flags & CONNECT_FLAG_USERNAME)
-		conn_pkt[i] |= CONNECT_FLAG_USERNAME;
-	if (conn_flags & CONNECT_FLAG_PASSWORD)
-		conn_pkt[i] |= CONNECT_FLAG_PASSWORD;
+	conn_pkt[++i] = conn_flags;
 
 	/* TODO: Receive KeepAlive value. */
-	conn_pkt[++i] = ((60 & 0xFF00) >> 8);
-	conn_pkt[++i] = (60 & 0x00FF);
+	conn_pkt[++i] = ((keepalive & 0xFF00) >> 8);
+	conn_pkt[++i] = (keepalive & 0x00FF);
 
 	/* PAYLOAD */
-	cID_len = strlen(clientID);
-	conn_pkt[++i] = (cID_len >> 8);
-	conn_pkt[++i] = cID_len;
-	for (int j = 0; j < cID_len; j++)
+	dummy = strlen(clientID);
+	conn_pkt[++i] = (dummy >> 8);
+	conn_pkt[++i] = dummy;
+	for (int j = 0; j < dummy; j++)
 		conn_pkt[++i] = clientID[j];
+	if (username != NULL) {
+		dummy = strlen(username);
+		for (int j = 0; j < dummy; j++)
+			conn_pkt[++i] = username[j];
+	}
+	if (password != NULL) {
+		dummy = strlen(password);
+		for (int j = 0; j < dummy; j++)
+			conn_pkt[++i] = password[j];
+	}
 
 	conn_pkt[1] = (++i - 2); // Set size of Byte 2 as VARIABLE HEADER + PAYLOAD.
 
@@ -67,7 +64,7 @@ int mqtt_prot_connect(uint8_t *to_send,
 	return bytes_to_send;
 }
 
-mqtt_connack_err_codes mqtt_prot_connack(const uint8_t *msg, int bytes_received)
+int mqtt_prot_connack(const uint8_t *msg, int bytes_received)
 {
 	print_dbg("IN");
 
@@ -95,7 +92,7 @@ int mqtt_prot_disconnect(uint8_t *to_send)
 }
 
 int mqtt_prot_subscribe(mqtt_subs_params *params,
-						int nbParams,
+						uint8_t nbParams,
 						uint8_t *to_send)
 {
 	uint8_t subs_pkt[MQTT_PROT_PACKET_LEN], i = 0;
@@ -161,7 +158,6 @@ int mqtt_prot_unsubscribe(mqtt_subs_params *params,
 	print_dbg("IN");
 
 	memset(&unsub_pkt[0], 0, MQTT_PROT_PACKET_LEN * sizeof(uint8_t));
-	// topic_len = (uint8_t)strlen(topic);
 
 	unsub_pkt[i] = (MQTT_PROT_UNSUBSCRIBE << 4) | (1 << 1);
 	unsub_pkt[++i] = 0x00;
@@ -208,17 +204,7 @@ int mqtt_prot_publish(uint8_t pub_flags,
 	topic_len = (uint8_t)strlen(topic);
 	pub_msg_len = (uint8_t)strlen(pub_msg);
 
-	pub_pkt[i] = (MQTT_PROT_PUBLISH << 4);
-	if (pub_flags & PUBLISH_FLAG_QOS_1)
-		pub_pkt[i] |= PUBLISH_FLAG_QOS_1;
-	if (pub_flags & PUBLISH_FLAG_QOS_2)
-		pub_pkt[i] |= PUBLISH_FLAG_QOS_2;
-	if (pub_flags & PUBLISH_FLAG_QOS_3)
-		pub_pkt[i] |= PUBLISH_FLAG_QOS_3;
-	if (pub_flags & PUBLISH_FLAG_RETAIN)
-		pub_pkt[i] |= PUBLISH_FLAG_RETAIN;
-	if (pub_flags & PUBLISH_FLAG_DUP)
-		pub_pkt[i] |= PUBLISH_FLAG_DUP;
+	pub_pkt[i] = (MQTT_PROT_PUBLISH << 4) | (pub_flags & 0xF);
 	pub_pkt[++i] = 0x00;
 
 	pub_pkt[++i] = (uint8_t)(topic_len >> 8);

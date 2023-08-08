@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	subs_params = (subscribe_parameters*)malloc(topics_len * sizeof(subscribe_parameters));
 	for (int i = 0; i < topics_len; i++) {
 		subs_params[i].topic_len = strlen(topics[i]);
-		subs_params[i].qos = 2;
+		subs_params[i].qos = SUBSCRIBE_QOS_2;
 		subs_params[i].topic = (char*)malloc(subs_params[i].topic_len * sizeof(char));
 		strncpy(subs_params[i].topic, topics[i], subs_params[i].topic_len * sizeof(char));
 	}
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	}
 
 	for (int i = 0; i < topics_len; i++) {
-		if (mqtt_publish(sockfd, subs_params[i].topic, "Teste 123") < 0) {
+		if (mqtt_publish(sockfd, PUBLISH_FLAG_QOS_2, subs_params[i].topic, "Teste 123") < 0) {
 			printf("MQTT publish failure!\n");
 			goto finish;
 		}

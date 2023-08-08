@@ -46,6 +46,8 @@ static int valid_clientID(const char *clientID)
 int mqtt_connect(const char *hostname,
 					int port,
 					const char *clientID,
+					mqtt_connect_flags connection_flags,
+					int keepalive,
 					const char *username,
 					const char *password)
 {
@@ -78,13 +80,19 @@ int mqtt_connect(const char *hostname,
 	print_dbg("Socket creation OK, try sending MQTT Connect");
 	memset(&buffer[0], 0, BUFFER_SIZE * sizeof(uint8_t));
 
-	/* TODO: Receive clean session and will flags */
-	connect_flags = CONNECT_FLAG_CLEAN_SESSION;
-	if (username != NULL)
-		connect_flags |= CONNECT_FLAG_USERNAME;
-	if (password != NULL)
-		connect_flags |= CONNECT_FLAG_PASSWORD;
-	buf_len = mqtt_prot_connect(buffer, connect_flags,
+	if ((connect_flags & CONNECT_FLAG_USERNAME && username == NULL) ||
+		(!(connect_flags & CONNECT_FLAG_USERNAME) && username != NULL) ||
+		(connect_flags & CONNECT_FLAG_PASSWORD && password == NULL) ||
+		(!(connect_flags & CONNECT_FLAG_PASSWORD) && password != NULL)) {
+		print_wrn("Username/Passwrd connection flag is set but username field \
+					is empty, we'll try to connect without authentication!");
+		connect_flags &= !(CONNECT_FLAG_USERNAME);
+		connect_flags &= !(CONNECT_FLAG_PASSWORD);
+		username = NULL;
+		password = NULL;
+	}
+
+	buf_len = mqtt_prot_connect(buffer, connect_flags, keepalive,
 									clientID, username, password);
 	if (socket_send(mqtt_socket, buffer, buf_len) < 0) {
 		print_err("Couldn't send connect packet");
@@ -110,7 +118,8 @@ int mqtt_connect_simple(const char *hostname,
 							int port,
 							const char *clientID)
 {
-	return mqtt_connect(hostname, port, clientID, NULL, NULL);
+	return mqtt_connect(hostname, port, clientID, CONNECT_FLAG_CLEAN_SESSION,
+						60, NULL, NULL);
 }
 
 int mqtt_subscribe(int mqtt_socket,
@@ -152,10 +161,11 @@ fail:
 	return -1;
 }
 
-int mqtt_publish(int mqtt_socket, const char *topic, const char *msg)
+int mqtt_publish(int mqtt_socket, mqtt_publish_flags publish_flags, 
+					const char *topic, const char *msg)
 {
 	int buf_len;
-	uint8_t buffer[BUFFER_SIZE], publish_flags;
+	uint8_t buffer[BUFFER_SIZE];
 
 	print_dbg("IN");
 
@@ -165,7 +175,6 @@ int mqtt_publish(int mqtt_socket, const char *topic, const char *msg)
 	}
 
 	/* TODO: Receive publish flags */
-	publish_flags = PUBLISH_FLAG_QOS_2;
 	memset(&buffer[0], 0, BUFFER_SIZE * sizeof(uint8_t));
 	buf_len = mqtt_prot_publish(publish_flags, topic, msg, buffer);
 	if (socket_send(mqtt_socket, buffer, buf_len) < 0) {

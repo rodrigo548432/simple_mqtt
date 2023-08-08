@@ -34,44 +34,10 @@ typedef enum {
     MQTT_PROT_DISCONNECT
 } mqtt_prot;
 
-typedef enum {
-    MQTT_CONNACK_ACCEPTED,
-    MQTT_CONNACK_REFUSED_BAD_PROTOCOL,
-    MQTT_CONNACK_REFUSED_ID_REJECTED,
-    MQTT_CONNACK_REFUSED_SERVER_UNAVAILABLE,
-    MQTT_CONNACK_REFUSED_BAD_USER_PASSWORD,
-    MQTT_CONNACK_REFUSED_NOT_AUTHORIZED
-} mqtt_connack_err_codes;
-
-typedef enum {
-    CONNECT_FLAG_RESERVED_BIT = 0b00000000,
-    CONNECT_FLAG_CLEAN_SESSION = 0b00000010,
-    CONNECT_FLAG_WILL = 0b00000100,
-    CONNECT_FLAG_WILL_QOS_1 = 0b00001000,
-    CONNECT_FLAG_WILL_QOS_2 = 0b00010000,
-    CONNECT_FLAG_WILL_RETAIN = 0b00100000,
-    CONNECT_FLAG_USERNAME = 0b01000000,
-    CONNECT_FLAG_PASSWORD = 0b10000000
-} mqtt_connect_flags;
-
-typedef enum {
-    PUBLISH_FLAG_QOS_1 = 0b00000000,
-    PUBLISH_FLAG_RETAIN = 0b00000001,
-    PUBLISH_FLAG_QOS_2 = 0b00000010,
-    PUBLISH_FLAG_QOS_3 = 0b00000100,
-    PUBLISH_FLAG_DUP = 0b0001000
-} mqtt_publish_flags;
-
-typedef enum {
-    SUBSCRIBE_QOS_0 = 0,
-    SUBSCRIBE_QOS_1,
-    SUBSCRIBE_QOS_2
-} mqtt_subscribe_qos;
-
 typedef struct {
-    mqtt_subscribe_qos qos;
-    int topic_len;
-    char *topic;
+    uint8_t qos;
+    uint8_t topic_len;
+    uint8_t *topic;
 } mqtt_subs_params;
 
 /**
@@ -103,6 +69,9 @@ typedef struct {
  * length.
  * @param to_send Formated 'connect' protocol packet.
  * @param conn_flags 1 byte bit to bit array with connection flags.
+ * @param keepalive maximum time interval that is permitted to elapse between
+ * the point at which the Client finishes transmitting one Control Packet and
+ * the point it starts sending the next.
  * @param clientID Client Identification
  * @param username Username to connect MQTT server.
  * @param password Password to connect MQTT server.
@@ -110,6 +79,7 @@ typedef struct {
  */
 int mqtt_prot_connect(uint8_t *to_send,
                         uint8_t conn_flags,
+                        uint16_t keepalive,
                         const char *clientID,
                         const char *username,
                         const char *password);
@@ -118,10 +88,9 @@ int mqtt_prot_connect(uint8_t *to_send,
  * @brief Answer packet for connect request.
  * @param msg Connack packet received.
  * @param bytes_received Number of bytes received.
- * @return Values of mqtt_connack_err_codes.
+ * @return The error code retrieved from connack.
  */
-mqtt_connack_err_codes mqtt_prot_connack(const uint8_t *msg,
-                                            int bytes_received);
+int mqtt_prot_connack(const uint8_t *msg, int bytes_received);
 
 /**
  * @brief
@@ -179,7 +148,7 @@ void mqtt_pubcomp();
  * @return Number of bytes to send
  */
 int mqtt_prot_subscribe(mqtt_subs_params *params,
-                        int nbParams,
+                        uint8_t nbParams,
                         uint8_t *to_send);
 
 /**
