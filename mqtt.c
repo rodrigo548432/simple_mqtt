@@ -53,7 +53,7 @@ int mqtt_connect(const char *hostname,
 {
 	int mqtt_socket, buf_len;
 	uint8_t buffer[BUFFER_SIZE];
-	uint8_t connect_flags;
+	uint8_t connect_flags = (uint8_t)connection_flags;
 
 	print_dbg("IN");
 
@@ -107,7 +107,7 @@ int mqtt_connect(const char *hostname,
 	}
 
 	if (mqtt_prot_connack(buffer, buf_len) != MQTT_CONNACK_ACCEPTED) {
-		print_err("Bad coonack!");
+		print_err("Bad conack!");
 		return -1;
 	}
 
@@ -126,7 +126,7 @@ int mqtt_subscribe(int mqtt_socket,
 					int subs_params_len,
 					subscribe_parameters *subs_parameters)
 {
-	int buf_len;
+	int buf_len, i;
 	uint8_t buffer[BUFFER_SIZE];
 	mqtt_subs_params *subs_params = (mqtt_subs_params*)subs_parameters;
 
@@ -136,6 +136,10 @@ int mqtt_subscribe(int mqtt_socket,
 		print_err("Subscribe parameters is NULL !!!");
 		goto fail;
 	}
+
+	print_dbg("Subscribing to topic(s):");
+	for (i = 0; i < subs_params_len; i++)
+		print_dbg("Topic [%d] : %s", i+1, subs_params[i].topic);
 
 	memset(&buffer[0], 0, BUFFER_SIZE * sizeof(uint8_t));
 	buf_len = mqtt_prot_subscribe(subs_params, subs_params_len, buffer);

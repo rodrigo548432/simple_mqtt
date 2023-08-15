@@ -51,7 +51,7 @@ typedef enum {
 typedef struct {
     mqtt_subscribe_qos qos;
     int topic_len;
-    char *topic;
+    const char *topic;
 } subscribe_parameters;
 
 /**
@@ -87,6 +87,7 @@ int mqtt_connect_simple(const char *hostname,
 
 /**
  * @brief This function sends subscribe packet.
+ * @param mqtt_socket MQTT socket created in mqtt_connect
  * @param subs_params_len MQTT subscribe parameters array length.
  * @param subs_parameters MQTT subscribe parameters array.
  * @return 0 if success or -1 if error.

@@ -22,14 +22,11 @@ int main(int argc, char *argv[])
 	}
 	const char *hostname = argv[1];
 	int port = atoi(argv[2]);
-	char **topics = NULL;
+	const char **topics = NULL;
 	int topics_len = argc - 3;
-	topics = (char**)malloc(topics_len * sizeof(char*));
-	for (int i = 0; i < topics_len; i++) {
-		int topic_str_len = strlen(argv[i+3]);
-		topics[i] = (char*)malloc(topic_str_len * sizeof(char));
-		strncpy(topics[i], argv[i+3], topic_str_len * sizeof(char));
-	}
+	topics = (const char**)malloc(topics_len * sizeof(const char*));
+	for (int i = 0; i < topics_len; i++)
+		topics[i] = argv[i+3];
 
 	printf("Start Simple MQTT packet sender:\n");
 	printf(" Hostname: %s\n", hostname);
@@ -51,8 +48,7 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < topics_len; i++) {
 		subs_params[i].topic_len = strlen(topics[i]);
 		subs_params[i].qos = SUBSCRIBE_QOS_2;
-		subs_params[i].topic = (char*)malloc(subs_params[i].topic_len * sizeof(char));
-		strncpy(subs_params[i].topic, topics[i], subs_params[i].topic_len * sizeof(char));
+		subs_params[i].topic = topics[i];
 	}
 	printf("Subscribe to topics\n");
 	if (mqtt_subscribe(sockfd, topics_len, subs_params) < 0) {
@@ -73,9 +69,7 @@ int main(int argc, char *argv[])
 
 finish:
 	for (int i = 0; i < topics_len; i++) {
-		free(subs_params[i].topic);
 		subs_params[i].topic = NULL;
-		free(topics[i]);
 		topics[i] = NULL;
 	}
 	free(subs_params);

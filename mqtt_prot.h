@@ -35,9 +35,9 @@ typedef enum {
 } mqtt_prot;
 
 typedef struct {
-    uint8_t qos;
-    uint8_t topic_len;
-    uint8_t *topic;
+    int qos;
+    int topic_len;
+    char *topic;
 } mqtt_subs_params;
 
 /**
